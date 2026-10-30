@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Roel Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=Hanken+Grotesk:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0C0C10; --surface:#17171D; --ink:#F1EDE4; --muted:#9A968C; --line:#2B2B34; --accent:#D8B472; --accent-ink:#0C0C10; --bad:#F0A58A;
+  --f-display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --f-body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) clamp(16px,4vw,40px) calc(env(safe-area-inset-bottom,0px) + 48px)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.mono{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase}
+.wrap{max-width:720px;margin-inline:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:10px 28px}
+.mark{font-family:var(--f-display);font-size:1.5rem;font-weight:600;letter-spacing:.02em}
+.ghost{background:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;color:var(--muted)}
+.ghost:hover{color:var(--ink);border-color:var(--ink)}
+h1{font-family:var(--f-display);font-weight:500;font-size:clamp(2.2rem,6vw,3.4rem);line-height:1;margin:0 0 10px}
+h2{font-family:var(--f-display);font-weight:500;font-size:1.8rem;line-height:1.1;margin:0}
+p.lede{color:var(--muted);margin:0 0 28px;max-width:34rem}
+form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.full{grid-column:1/-1}
+label{color:var(--muted)}
+input[type=text],input[type=password],input[type=date],textarea{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:9px 0;width:100%;min-width:0}
+input:focus,textarea:focus{outline:none;border-bottom-color:var(--accent)}
+textarea{resize:vertical;min-height:7.5rem}
+input[type=file]{max-width:100%;color:var(--muted)}
+.preview{display:block;max-width:100%;max-height:260px;margin-top:10px;border:1px solid var(--line)}
+.go{background:var(--accent);color:var(--accent-ink);border:0;padding:13px 26px;cursor:pointer;font-weight:600;letter-spacing:.04em}
+.go:disabled{opacity:.5;cursor:default}
+.actions{grid-column:1/-1;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.status{color:var(--muted);min-height:1.5em}
+.status.bad{color:var(--bad)}
+.status.good{color:var(--accent)}
+section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
+.rows{display:flex;flex-direction:column;margin-top:18px}
+.row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center;padding-block:12px;border-bottom:1px solid var(--line)}
+.thumb{width:64px;height:64px;background:var(--surface);object-fit:cover;display:block}
+.row b{font-family:var(--f-display);font-weight:500;font-size:1.2rem;display:block;overflow-wrap:anywhere}
+.row span.meta{color:var(--muted);font-size:.9rem}
+.row .rm{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px}
+.row .rm:hover{color:var(--ink)}
+.row .sure{background:var(--ink);color:var(--bg);border:0;padding:8px 14px;cursor:pointer}
+.empty{color:var(--muted);padding-block:18px}
+.login{max-width:26rem}
+.login .fld{margin-bottom:22px}
+[hidden]{display:none!important}
+@media (max-width:560px){form{grid-template-columns:minmax(0,1fr)}.row{grid-template-columns:48px minmax(0,1fr)}.thumb{width:48px;height:48px}.row .tools{grid-column:2}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="mark">Roel</span>
+    <div style="display:flex;gap:10px">
+      <a class="ghost mono" href="/" style="text-decoration:none">View site</a>
+      <button class="ghost mono" id="out" type="button" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <div id="loginView" class="login">
+    <h1>Portal</h1>
+    <p class="lede">Only you can add or remove memories. Enter your password to continue.</p>
+    <form id="loginForm" style="display:block">
+      <div class="fld"><label class="mono" for="pw">Password</label><input type="password" id="pw" autocomplete="current-password" required></div>
+      <div class="actions"><button class="go mono" id="loginBtn" type="submit">Sign in</button><span class="status" id="loginStatus" role="status" aria-live="polite"></span></div>
+    </form>
+  </div>
+
+  <div id="mainView" hidden>
+    <h1>Add a memory</h1>
+    <p class="lede">A title is enough. Add a date, the story, who was there and a photo so you do not lose them later.</p>
+    <form id="form" autocomplete="off">
+      <div class="fld full"><label class="mono" for="f-title">Title</label><input type="text" id="f-title" maxlength="120" required></div>
+      <div class="fld"><label class="mono" for="f-date">Date</label><input type="date" id="f-date"></div>
+      <div class="fld"><label class="mono" for="f-place">Place</label><input type="text" id="f-place" maxlength="120"></div>
+      <div class="fld full"><label class="mono" for="f-people">Who was there</label><input type="text" id="f-people" maxlength="200"></div>
+      <div class="fld full"><label class="mono" for="f-story">The story</label><textarea id="f-story" maxlength="6000"></textarea></div>
+      <div class="fld full"><label class="mono" for="f-photo">Photo</label><input type="file" id="f-photo" accept="image/png,image/jpeg,image/webp,image/gif"><img class="preview" id="preview" alt="" hidden></div>
+      <div class="actions"><button class="go mono" id="save" type="submit">Save memory</button><span class="status" id="status" role="status" aria-live="polite"></span></div>
+    </form>
+
+    <section class="list">
+      <h2>Your memories</h2>
+      <div class="rows" id="rows"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var pw="";
+  try{pw=sessionStorage.getItem("roel-pw")||""}catch(_){}
+
+  function pad(n){return String(n).length<2?"0"+n:String(n)}
+  function today(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+  function say(el,text,kind){el.textContent=text;el.className="status"+(kind?" "+kind:"")}
+
+  function api(path,opts){
+    opts=opts||{};opts.headers=Object.assign({"x-admin-password":pw},opts.headers||{});
+    return fetch(path,opts).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(j){
+        if(!r.ok){var e=new Error(j.error||("Something went wrong ("+r.status+")."));e.status=r.status;throw e}
+        return j;
+      });
+    });
+  }
+
+  function showMain(){$("#loginView").hidden=true;$("#mainView").hidden=false;$("#out").hidden=false;$("#f-date").value=today();loadList()}
+  function showLogin(msg){
+    pw="";try{sessionStorage.removeItem("roel-pw")}catch(_){}
+    $("#mainView").hidden=true;$("#loginView").hidden=false;$("#out").hidden=true;
+    say($("#loginStatus"),msg||"",msg?"bad":"");
+  }
+
+  $("#loginForm").addEventListener("submit",function(e){
+    e.preventDefault();
+    pw=$("#pw").value;var b=$("#loginBtn");b.disabled=true;say($("#loginStatus"),"Checking.");
+    api("/api/login",{method:"POST"}).then(function(){
+      try{sessionStorage.setItem("roel-pw",pw)}catch(_){}
+      $("#pw").value="";say($("#loginStatus"),"");showMain();
+    }).catch(function(err){
+      pw="";say($("#loginStatus"),err.status===401?"That password is not right.":err.message,"bad");
+    }).then(function(){b.disabled=false});
+  });
+  $("#out").addEventListener("click",function(){showLogin("")});
+
+  /* photo preview */
+  $("#f-photo").addEventListener("change",function(){
+    var f=this.files[0],p=$("#preview");
+    if(p.dataset.url){URL.revokeObjectURL(p.dataset.url);p.dataset.url=""}
+    if(!f){p.hidden=true;return}
+    var u=URL.createObjectURL(f);p.dataset.url=u;p.src=u;p.hidden=false;
+  });
+
+  /* shrink before upload: the server accepts up to 4 MB */
+  async function prepare(file){
+    if(file.type==="image/gif"){
+      if(file.size>4000000)throw new Error("That GIF is over 4 MB. Use a smaller one.");
+      return file;
+    }
+    var bmp=await createImageBitmap(file);
+    var sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));
+    var c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    var q=0.88,blob;
+    while(q>0.4){
+      blob=await new Promise(function(r){c.toBlob(r,"image/jpeg",q)});
+      if(blob&&blob.size<=3800000)return blob;
+      q-=0.12;
+    }
+    throw new Error("Could not make that photo small enough. Try a smaller picture.");
+  }
+
+  $("#form").addEventListener("submit",async function(e){
+    e.preventDefault();
+    var st=$("#status"),btn=$("#save");
+    var title=$("#f-title").value.trim();
+    if(!title){say(st,"Add a title first.","bad");return}
+    btn.disabled=true;say(st,"Saving.");
+    try{
+      var photo="",file=$("#f-photo").files[0];
+      if(file){
+        say(st,"Uploading the photo.");
+        var data=await prepare(file);
+        var base=(file.name||"photo").replace(/\.[^.]+$/,"");
+        var up=await api("/api/photo?name="+encodeURIComponent(base),{method:"POST",headers:{"Content-Type":data.type||"image/jpeg"},body:data});
+        photo=up.url;
+      }
+      say(st,"Saving the memory.");
+      await api("/api/memories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"add",memory:{
+        title:title,date:$("#f-date").value,place:$("#f-place").value,people:$("#f-people").value,story:$("#f-story").value,photo:photo}})});
+      $("#form").reset();$("#f-date").value=today();$("#preview").hidden=true;
+      say(st,"Saved. It is on your site now.","good");
+      loadList();
+    }catch(err){
+      if(err.status===401){showLogin("Your session ended. Sign in again.");return}
+      say(st,err.message,"bad");
+    }
+    btn.disabled=false;
+  });
+
+  function loadList(){
+    var rows=$("#rows");
+    fetch("/api/memories",{cache:"no-store"}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||"Could not load.");return j})}).then(function(list){
+      list.sort(function(a,b){return (a.date||"")<(b.date||"")?1:(a.date||"")>(b.date||"")?-1:0});
+      rows.textContent="";
+      if(!list.length){var d=document.createElement("div");d.className="empty";d.textContent="Nothing added here yet. Memories you save will show up in this list.";rows.appendChild(d);return}
+      list.forEach(function(m){rows.appendChild(row(m))});
+    }).catch(function(err){rows.textContent="";var d=document.createElement("div");d.className="empty";d.textContent="The list could not be loaded: "+err.message;rows.appendChild(d)});
+  }
+
+  function row(m){
+    var r=document.createElement("div");r.className="row";
+    var t=document.createElement(m.photo?"img":"div");t.className="thumb";
+    if(m.photo){t.src=m.photo;t.alt=""}
+    var mid=document.createElement("div"),b=document.createElement("b"),s=document.createElement("span");
+    b.textContent=m.title;s.className="meta";s.textContent=[m.date,m.place].filter(Boolean).join(" · ");
+    mid.appendChild(b);mid.appendChild(s);
+    var tools=document.createElement("div");tools.className="tools";
+    var rm=document.createElement("button");rm.type="button";rm.className="rm";rm.textContent="Delete";
+    rm.addEventListener("click",function(){
+      tools.textContent="";
+      var yes=document.createElement("button");yes.type="button";yes.className="sure mono";yes.textContent="Delete for good";
+      var no=document.createElement("button");no.type="button";no.className="rm";no.textContent="Keep";
+      no.addEventListener("click",function(){tools.textContent="";tools.appendChild(rm)});
+      yes.addEventListener("click",function(){
+        yes.disabled=true;
+        api("/api/memories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",id:m.id})})
+          .then(loadList).catch(function(err){say($("#status"),err.message,"bad");loadList()});
+      });
+      tools.appendChild(yes);tools.appendChild(no);
+    });
+    tools.appendChild(rm);
+    r.appendChild(t);r.appendChild(mid);r.appendChild(tools);
+    return r;
+  }
+
+  if(pw){api("/api/login",{method:"POST"}).then(showMain).catch(function(){showLogin("")})}
+})();
+</script>
+</body>
+</html>

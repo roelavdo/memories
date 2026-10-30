@@ -237,11 +237,19 @@ input[type=file]{max-width:100%;color:var(--muted)}
   })();
 
   renderAll();
-  fetch("memories.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json()}).then(function(list){
-    memories=(Array.isArray(list)?list:[]).filter(function(m){return m&&m.title}).map(function(m,i){m.id=String(i);return m});
+  function getJson(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json()})}
+  var apiFailed=false;
+  Promise.all([
+    getJson("/api/memories").catch(function(){apiFailed=true;return []}),
+    getJson("memories.json").catch(function(){return null})
+  ]).then(function(r){
+    if(r[1]===null&&apiFailed){loaded=true;loadError=true;renderAll();return}
+    var fromApi=(Array.isArray(r[0])?r[0]:[]).filter(function(m){return m&&m.title}).map(function(m,i){m.id=String(m.id||("a"+i));return m});
+    var fromFile=(Array.isArray(r[1])?r[1]:[]).filter(function(m){return m&&m.title}).map(function(m,i){m.id="f"+i;return m});
+    memories=fromApi.concat(fromFile);
     memories.sort(function(a,b){return (a.date||"")<(b.date||"")?1:(a.date||"")>(b.date||"")?-1:0});
     loaded=true;renderAll();
-  }).catch(function(){loaded=true;loadError=true;renderAll()});
+  });
 })();
 </script>
 </body>
