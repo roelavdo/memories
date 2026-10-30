@@ -39,7 +39,9 @@ input[type=text],input[type=password],input[type=date],textarea{background:trans
 input:focus,textarea:focus{outline:none;border-bottom-color:var(--accent)}
 textarea{resize:vertical;min-height:7.5rem}
 input[type=file]{max-width:100%;color:var(--muted)}
-.preview{display:block;max-width:100%;max-height:260px;margin-top:10px;border:1px solid var(--line)}
+.previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.previews img{width:72px;height:72px;object-fit:cover;border:1px solid var(--line)}
+.previews span{color:var(--muted)}
 .go{background:var(--accent);color:var(--accent-ink);border:0;padding:13px 26px;cursor:pointer;font-weight:600;letter-spacing:.04em}
 .go:disabled{opacity:.5;cursor:default}
 .actions{grid-column:1/-1;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
@@ -90,7 +92,7 @@ section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
       <div class="fld"><label class="mono" for="f-place">Place</label><input type="text" id="f-place" maxlength="120"></div>
       <div class="fld full"><label class="mono" for="f-people">Who was there</label><input type="text" id="f-people" maxlength="200"></div>
       <div class="fld full"><label class="mono" for="f-story">The story</label><textarea id="f-story" maxlength="6000"></textarea></div>
-      <div class="fld full"><label class="mono" for="f-photo">Photo</label><input type="file" id="f-photo" accept="image/png,image/jpeg,image/webp,image/gif"><img class="preview" id="preview" alt="" hidden></div>
+      <div class="fld full"><label class="mono" for="f-photo">Photos</label><input type="file" id="f-photo" accept="image/png,image/jpeg,image/webp,image/gif" multiple><div class="previews" id="previews"></div></div>
       <div class="actions"><button class="go mono" id="save" type="submit">Save memory</button><span class="status" id="status" role="status" aria-live="polite"></span></div>
     </form>
 
@@ -140,13 +142,31 @@ section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
   });
   $("#out").addEventListener("click",function(){showLogin("")});
 
-  /* photo preview */
+  /* photo previews: first 24 only, so a big selection stays light */
+  var urls=[];
+  function clearPreviews(){urls.forEach(function(u){URL.revokeObjectURL(u)});urls=[];$("#previews").textContent=""}
   $("#f-photo").addEventListener("change",function(){
-    var f=this.files[0],p=$("#preview");
-    if(p.dataset.url){URL.revokeObjectURL(p.dataset.url);p.dataset.url=""}
-    if(!f){p.hidden=true;return}
-    var u=URL.createObjectURL(f);p.dataset.url=u;p.src=u;p.hidden=false;
+    clearPreviews();
+    var box=$("#previews"),files=Array.prototype.slice.call(this.files);
+    files.slice(0,24).forEach(function(f){var u=URL.createObjectURL(f);urls.push(u);var i=document.createElement("img");i.src=u;i.alt="";box.appendChild(i)});
+    if(files.length>24){var t=document.createElement("span");t.textContent="+ "+(files.length-24)+" more";box.appendChild(t)}
+    else if(files.length>1){var c=document.createElement("span");c.textContent=files.length+" photos";box.appendChild(c)}
   });
+
+  /* uploads one photo at a time; a failed photo is skipped and counted */
+  async function uploadFiles(files,st){
+    var photos=[],failed=0;
+    for(var i=0;i<files.length;i++){
+      say(st,"Uploading photo "+(i+1)+" of "+files.length+".");
+      try{
+        var data=await prepare(files[i]);
+        var base=(files[i].name||"photo").replace(/\.[^.]+$/,"");
+        var up=await api("/api/photo?name="+encodeURIComponent(base),{method:"POST",headers:{"Content-Type":data.type||"image/jpeg"},body:data});
+        photos.push(up.url);
+      }catch(err){if(err.status===401)throw err;failed++}
+    }
+    return {photos:photos,failed:failed};
+  }
 
   /* shrink before upload: the server accepts up to 4 MB */
   async function prepare(file){
@@ -174,19 +194,16 @@ section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
     if(!title){say(st,"Add a title first.","bad");return}
     btn.disabled=true;say(st,"Saving.");
     try{
-      var photo="",file=$("#f-photo").files[0];
-      if(file){
-        say(st,"Uploading the photo.");
-        var data=await prepare(file);
-        var base=(file.name||"photo").replace(/\.[^.]+$/,"");
-        var up=await api("/api/photo?name="+encodeURIComponent(base),{method:"POST",headers:{"Content-Type":data.type||"image/jpeg"},body:data});
-        photo=up.url;
+      var files=Array.prototype.slice.call($("#f-photo").files),photos=[],failed=0;
+      if(files.length){
+        var up=await uploadFiles(files,st);photos=up.photos;failed=up.failed;
+        if(!photos.length)throw new Error("None of the photos could be uploaded. Try again.");
       }
       say(st,"Saving the memory.");
       await api("/api/memories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"add",memory:{
-        title:title,date:$("#f-date").value,place:$("#f-place").value,people:$("#f-people").value,story:$("#f-story").value,photo:photo}})});
-      $("#form").reset();$("#f-date").value=today();$("#preview").hidden=true;
-      say(st,"Saved. It is on your site now.","good");
+        title:title,date:$("#f-date").value,place:$("#f-place").value,people:$("#f-people").value,story:$("#f-story").value,photos:photos}})});
+      $("#form").reset();$("#f-date").value=today();clearPreviews();
+      say(st,failed?"Saved with "+photos.length+" of "+files.length+" photos. "+failed+" could not upload. Use Add photos in the list below to try them again.":"Saved. It is on your site now.",failed?"bad":"good");
       loadList();
     }catch(err){
       if(err.status===401){showLogin("Your session ended. Sign in again.");return}
@@ -207,10 +224,11 @@ section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
 
   function row(m){
     var r=document.createElement("div");r.className="row";
-    var t=document.createElement(m.photo?"img":"div");t.className="thumb";
-    if(m.photo){t.src=m.photo;t.alt=""}
+    var ps=Array.isArray(m.photos)&&m.photos.length?m.photos:(m.photo?[m.photo]:[]);
+    var t=document.createElement(ps.length?"img":"div");t.className="thumb";
+    if(ps.length){t.src=ps[0];t.alt=""}
     var mid=document.createElement("div"),b=document.createElement("b"),s=document.createElement("span");
-    b.textContent=m.title;s.className="meta";s.textContent=[m.date,m.place].filter(Boolean).join(" · ");
+    b.textContent=m.title;s.className="meta";s.textContent=[m.date,m.place,ps.length+(ps.length===1?" photo":" photos")].filter(Boolean).join(" · ");
     mid.appendChild(b);mid.appendChild(s);
     var tools=document.createElement("div");tools.className="tools";
     var rm=document.createElement("button");rm.type="button";rm.className="rm";rm.textContent="Delete";
@@ -226,7 +244,26 @@ section.list{margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
       });
       tools.appendChild(yes);tools.appendChild(no);
     });
-    tools.appendChild(rm);
+    var add=document.createElement("button");add.type="button";add.className="rm";add.textContent="Add photos";
+    add.addEventListener("click",function(){
+      var inp=document.createElement("input");inp.type="file";inp.multiple=true;inp.accept="image/png,image/jpeg,image/webp,image/gif";
+      inp.addEventListener("change",async function(){
+        var files=Array.prototype.slice.call(inp.files);if(!files.length)return;
+        var st=$("#status");add.disabled=true;
+        try{
+          var up=await uploadFiles(files,st);
+          if(!up.photos.length)throw new Error("None of the photos could be uploaded. Try again.");
+          await api("/api/memories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"addPhotos",id:m.id,photos:up.photos})});
+          say(st,up.failed?"Added "+up.photos.length+" of "+files.length+" photos. "+up.failed+" could not upload.":"Added "+up.photos.length+(up.photos.length===1?" photo.":" photos."),up.failed?"bad":"good");
+        }catch(err){
+          if(err.status===401){showLogin("Your session ended. Sign in again.");return}
+          say(st,err.message,"bad");
+        }
+        loadList();
+      });
+      inp.click();
+    });
+    tools.appendChild(add);tools.appendChild(rm);
     r.appendChild(t);r.appendChild(mid);r.appendChild(tools);
     return r;
   }

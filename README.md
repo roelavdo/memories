@@ -1,24 +1,7 @@
 # Roel Memories
 
-Static site for Vercel. No build step.
+Deploys on Vercel with no build step.
 
-## Add a memory
-1. Put the photo in the `photos` folder (JPG, PNG or WebP, ideally under 2 MB).
-2. Add an entry to `memories.json`:
-
-```json
-[
-  {
-    "title": "Evening at the lake",
-    "date": "2026-10-02",
-    "place": "Tirana Artificial Lake",
-    "people": "me",
-    "story": "A few lines about the day.",
-    "photo": "photos/lake.jpg"
-  }
-]
-```
-
-3. Commit and push. Vercel redeploys on its own.
-
-`title` is required. `date` uses YYYY-MM-DD. Everything else is optional.
+- `/` is the public site. Each photo of a memory is one full screen, shown whole.
+- `/admin` is the private portal. It needs the `ADMIN_PASSWORD` environment variable and a Vercel Blob store (Public).
+- Memories added in the portal are stored in Blob. Old memories can still live in `memories.json` (optional).

@@ -47,6 +47,20 @@ export async function writeList(items) {
   });
 }
 
+export const MAX_PHOTOS = 500;
+
+export function cleanPhotos(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((u) => typeof u === "string" && PHOTO_URL.test(u)).slice(0, MAX_PHOTOS);
+}
+
+/** All photo URLs of a memory, including the older single `photo` field. */
+export function photosOf(m) {
+  const a = Array.isArray(m && m.photos) ? m.photos.filter((u) => typeof u === "string" && u) : [];
+  if (!a.length && m && typeof m.photo === "string" && m.photo) return [m.photo];
+  return a;
+}
+
 const str = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** Returns a safe memory object, or null when the title is missing. */
@@ -55,14 +69,16 @@ export function clean(m) {
   const title = str(m.title, 120);
   if (!title) return null;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(m.date || "") ? m.date : "";
-  const photo = typeof m.photo === "string" && PHOTO_URL.test(m.photo) ? m.photo : "";
+  let photos = cleanPhotos(m.photos);
+  if (!photos.length) photos = cleanPhotos([m.photo]);
   return {
     title,
     date,
     place: str(m.place, 120),
     people: str(m.people, 200),
     story: str(m.story, 6000),
-    photo,
+    photos,
+    photo: photos[0] || "",
   };
 }
 

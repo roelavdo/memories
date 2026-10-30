@@ -42,7 +42,7 @@ button,input,textarea{font:inherit;color:inherit}
 
 /* bar: floats over the photos */
 .bar{position:fixed;top:0;left:0;right:0;z-index:20;color:var(--stage-ink);pointer-events:none;
-  background:linear-gradient(to bottom,rgba(8,8,12,.6),rgba(8,8,12,0));
+  text-shadow:0 1px 10px rgba(0,0,0,.75),0 0 2px rgba(0,0,0,.6);
   padding:calc(env(safe-area-inset-top,0px) + 6px) clamp(16px,3vw,40px) 30px}
 .bar-in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:10px}
 .bar a,.bar button{pointer-events:auto}
@@ -62,10 +62,10 @@ button,input,textarea{font:inherit;color:inherit}
 .strip::-webkit-scrollbar{display:none}
 .photo{position:relative;display:block;flex:none;width:100%;height:100%;padding:0;border:0;background:var(--stage);color:var(--stage-ink);
   cursor:pointer;text-align:left;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
-.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block}
 .photo .cap{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:4px;pointer-events:none;
   padding:72px clamp(16px,3vw,40px) calc(env(safe-area-inset-bottom,0px) + 24px);
-  background:linear-gradient(to top,rgba(8,8,12,.72),rgba(8,8,12,0))}
+  text-shadow:0 1px 12px rgba(0,0,0,.8),0 0 3px rgba(0,0,0,.65)}
 .cap .mono{color:#E4C689}
 .cap b{font-family:var(--f-display);font-weight:500;font-size:clamp(1.7rem,4vw,3.2rem);line-height:1.05}
 .photo.plain .cap{background:none}
@@ -83,7 +83,7 @@ button,input,textarea{font:inherit;color:inherit}
 .sheet{position:fixed;inset:0;z-index:50;background:rgba(6,6,9,.82);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:clamp(12px,4vw,48px)}
 .sheet[hidden]{display:none!important}
 .paper{background:var(--bg);border:1px solid var(--line);max-width:860px;width:100%;position:relative}
-.paper img{display:block;width:100%;max-height:72vh;object-fit:cover}
+.paper img{display:block;max-width:100%;max-height:82vh;width:auto;height:auto;margin:0 auto 4px;background:var(--stage)}
 .paper .body{padding:clamp(18px,3.4vw,40px)}
 .paper h2{font-family:var(--f-display);font-weight:500;font-size:clamp(2rem,5vw,3.4rem);line-height:1;margin:10px 0 0}
 .meta{display:flex;gap:6px 22px;flex-wrap:wrap;color:var(--muted);margin-top:14px}
@@ -138,8 +138,8 @@ input[type=file]{max-width:100%;color:var(--muted)}
   function pd(s){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||"");return m?{y:+m[1],m:+m[2],d:+m[3]}:null}
   function short(s){var p=pd(s);return p?p.d+" "+MONTHS[p.m-1]+" "+p.y:"Undated"}
   function pad(n,w){n=String(n);while(n.length<w)n="0"+n;return n}
-  function hasPhoto(m){return typeof m.photo==="string"&&m.photo.length>0}
-  function img(m){return hasPhoto(m)?'<img data-photo alt="'+esc(m.title)+'" decoding="async" src="'+esc(m.photo)+'">':""}
+  function pics(m){var a=Array.isArray(m.photos)?m.photos:[];if(!a.length&&typeof m.photo==="string"&&m.photo)a=[m.photo];return a.filter(function(u){return typeof u==="string"&&u})}
+  function imgTag(src,m,lazy){return '<img data-photo alt="'+esc(m.title)+'" decoding="async"'+(lazy?' loading="lazy"':'')+' src="'+esc(src)+'">'}
 
   /* entry numbers follow the calendar: oldest memory is No. 001 */
   function numbered(){
@@ -161,11 +161,18 @@ input[type=file]{max-width:100%;color:var(--muted)}
       el.innerHTML='<div class="empty">'+msg+'</div>';
       return;
     }
+    var first=true;
     el.innerHTML=memories.map(function(m){
-      var has=hasPhoto(m), p=pd(m.date);
-      return '<button type="button" class="photo'+(has?'':' plain')+'" data-open="'+esc(m.id)+'">'+img(m)+
-        (has?'':'<span class="day" aria-hidden="true">'+(p?p.d:"")+'</span>')+
-        '<span class="cap"><span class="mono">No. '+pad(nums[m.id],3)+' · '+esc(short(m.date))+'</span><b>'+esc(m.title)+'</b></span></button>';
+      var ps=pics(m), p=pd(m.date), n=Math.max(ps.length,1);
+      var out="";
+      for(var i=0;i<n;i++){
+        var has=ps.length>0, count=n>1?' · '+(i+1)+' / '+n:'';
+        out+='<button type="button" class="photo'+(has?'':' plain')+'" data-open="'+esc(m.id)+'">'+(has?imgTag(ps[i],m,!first):"")+
+          (has?'':'<span class="day" aria-hidden="true">'+(p?p.d:"")+'</span>')+
+          '<span class="cap"><span class="mono">No. '+pad(nums[m.id],3)+' · '+esc(short(m.date))+count+'</span><b>'+esc(m.title)+'</b></span></button>';
+        first=false;
+      }
+      return out;
     }).join("");
     wireImgs(el);
   }
@@ -175,7 +182,7 @@ input[type=file]{max-width:100%;color:var(--muted)}
     var m=memories.filter(function(x){return x.id===openId})[0];
     if(!m){sh.hidden=true;sh.innerHTML="";document.body.style.overflow="";return}
     var meta='<span>'+esc(short(m.date))+'</span>'+(m.place?'<span>'+esc(m.place)+'</span>':'')+(m.people?'<span>With '+esc(m.people)+'</span>':'');
-    sh.innerHTML='<div class="paper"><button type="button" class="close mono" data-act="close">Close</button>'+img(m)+
+    sh.innerHTML='<div class="paper"><button type="button" class="close mono" data-act="close">Close</button>'+pics(m).map(function(u){return imgTag(u,m,true)}).join("")+
       '<div class="body"><span class="mono" style="color:var(--accent)">Entry '+pad(nums[m.id],3)+'</span><h2>'+esc(m.title)+'</h2><div class="meta">'+meta+'</div>'+
       (m.story?'<div class="story">'+esc(m.story)+'</div>':'')+'</div></div>';
     sh.hidden=false;document.body.style.overflow="hidden";
