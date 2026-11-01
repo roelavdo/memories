@@ -6,6 +6,12 @@
 <style>:root{color-scheme:light}html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Roel Memories</title>
 <meta name="robots" content="noindex">
+<meta name="description" content="Roel's memories, one photo after another, side by side.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Roel Memories">
+<meta property="og:description" content="Roel's memories, one photo after another, side by side.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=Hanken+Grotesk:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -131,12 +137,14 @@ input[type=file]{max-width:100%;color:var(--muted)}
   function pd(s){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||"");return m?{y:+m[1],m:+m[2],d:+m[3]}:null}
   function short(s){var p=pd(s);return p?p.d+" "+MONTHS[p.m-1]+" "+p.y:"Undated"}
   function pad(n,w){n=String(n);while(n.length<w)n="0"+n;return n}
+  /* newest upload first; memories from memories.json have no upload time and come last */
+  function newer(a,b){var ca=a.createdAt||0,cb=b.createdAt||0;if(ca!==cb)return cb-ca;return (a.date||"")<(b.date||"")?1:(a.date||"")>(b.date||"")?-1:0}
   function pics(m){var a=Array.isArray(m.photos)?m.photos:[];if(!a.length&&typeof m.photo==="string"&&m.photo)a=[m.photo];return a.filter(function(u){return typeof u==="string"&&u})}
   function imgTag(src,m,lazy){return '<img data-photo alt="'+esc(m.title)+'" decoding="async"'+(lazy?' loading="lazy"':'')+' src="'+esc(src)+'">'}
 
   /* entry numbers follow the calendar: oldest memory is No. 001 */
   function numbered(){
-    var asc=memories.slice().sort(function(a,b){return (a.date||"")<(b.date||"")?-1:(a.date||"")>(b.date||"")?1:0});
+    var asc=memories.slice().sort(function(a,b){return newer(b,a)});
     var map={};asc.forEach(function(m,i){map[m.id]=i+1});return map;
   }
   function wireImgs(root){
@@ -243,7 +251,7 @@ input[type=file]{max-width:100%;color:var(--muted)}
     var fromApi=(Array.isArray(r[0])?r[0]:[]).filter(function(m){return m&&m.title}).map(function(m,i){m.id=String(m.id||("a"+i));return m});
     var fromFile=(Array.isArray(r[1])?r[1]:[]).filter(function(m){return m&&m.title}).map(function(m,i){m.id="f"+i;return m});
     memories=fromApi.concat(fromFile);
-    memories.sort(function(a,b){return (a.date||"")<(b.date||"")?1:(a.date||"")>(b.date||"")?-1:0});
+    memories.sort(newer);
     loaded=true;renderAll();
   });
 })();
